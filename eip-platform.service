@@ -6,7 +6,7 @@ After=network.target
 User=nojus
 WorkingDirectory=/home/nojus/eip-platform
 EnvironmentFile=/home/nojus/eip-platform/.env
-ExecStart=/usr/bin/python3 /home/nojus/eip-platform/platform.py
+ExecStart=/home/nojus/eip-platform/.venv/bin/python /home/nojus/eip-platform/server.py
 Restart=always
 RestartSec=5
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=EIP Platform — Universal App Server
+After=network.target
+
+[Service]
+User=nojus
+WorkingDirectory=/home/nojus/eip-platform
+EnvironmentFile=/home/nojus/eip-platform/.env
+ExecStart=/usr/bin/python3 /home/nojus/eip-platform/platform.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

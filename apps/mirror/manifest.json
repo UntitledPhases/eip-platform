@@ -1,0 +1,6 @@
+{
+  "name": "Smart Mirror",
+  "url_prefix": "/mirror",
+  "description": "Kiosk dashboard — goals, calendar, mirror notes from Notion",
+  "version": "2.0.0"
+}

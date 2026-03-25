@@ -3,7 +3,7 @@
 from flask import Blueprint, jsonify, send_from_directory
 import os
 
-from .poller import cache
+from .poller import cache, start as _start_poller
 
 bp = Blueprint("mirror", __name__, static_folder=None)
 
@@ -22,7 +22,7 @@ def _cfg():
 def init_app(app):
     cfg = _cfg()
     if cfg["notion_token"]:
-        cache.start(
+        _start_poller(
             notion_token=cfg["notion_token"],
             goals_db=cfg["goals_db"],
             calendar_db=cfg["calendar_db"],

@@ -12,38 +12,58 @@ Load project-specific pages based on what's being worked on:
 ## What This Is
 Universal Flask application server with Blueprint auto-discovery. The platform layer has zero app-specific code — every feature lives in a self-contained app Blueprint under `apps/`.
 
+The `engine/` layer holds reusable primitives (Notion client, polling cache, etc.) that any app can import. Apps wire engine modules together with app-specific config — they don't reimplement the plumbing.
+
 Runs on Pi (rasplient, 100.66.29.15) as systemd service `eip-platform.service`.
 
-## Platform Layer
+## Structure
 ```
+engine/            ← reusable primitives, no app-specific logic
+  notion.py        ← NotionClient (HTTP client for Notion API)
+  poller.py        ← PollingCache (generic background polling cache)
 server.py          ← entry point (NOT platform.py — stdlib collision)
 apps/<name>/
   __init__.py      ← Blueprint as `bp` + init_app(app)
   manifest.json    ← { name, url_prefix, description, version }
 ```
-`server.py` auto-discovers every `apps/*/` directory, calls `init_app(app)`, registers `bp` at the manifest's `url_prefix`. Adding a new app = drop a folder, no platform changes needed.
+`server.py` auto-discovers every `apps/*/` directory, calls `init_app(app)`, registers `bp` at the manifest's `url_prefix`. Both `engine/` and `apps/` are on `sys.path` at boot. Adding a new app = drop a folder, no platform changes needed.
 
 Config: `.env` (gitignored). Runtime: `.venv/` (not system Python).
 
-## Boundary Rule
+## Boundary Rules
 Before adding code, ask: *"Would this exist if no apps were registered?"*
-- Yes → platform layer (`server.py`)
-- No → app Blueprint (`apps/<name>/`)
+- Yes → `server.py` (platform)
+- No, but reusable across apps → `engine/` (primitive)
+- No, app-specific → `apps/<name>/` (Blueprint)
+
+## Engine Primitives (`engine/`)
+
+| Module | What / Why |
+|--------|-----------|
+| `notion.py` | `NotionClient` — thin Notion REST wrapper. Any app talking to Notion imports this. |
+| `poller.py` | `PollingCache` — generic background polling cache. Caller supplies a `fetch_fn`, cache handles threading, error capture, timestamps. |
+
+**How to use PollingCache in a new app:**
+```python
+from engine.poller import PollingCache
+from engine.notion import NotionClient
+
+cache = PollingCache({"items": []})
+
+def start(token, db_id, interval=60):
+    client = NotionClient(token)
+    cache.start(lambda: {"items": client.query_database(db_id)}, interval)
+```
 
 ## Mirror App (`apps/mirror/`)
 
-The most complex Blueprint — split into focused modules:
-
 | File | What / Why |
 |------|-----------|
-| `__init__.py` | Blueprint routes (`/api/data`, static serving) + `init_app` that starts the poller |
-| `poller.py` | Background thread, polls Notion every 60s, writes to `cache` singleton |
-| `notion.py` | Raw Notion API calls (`_request`, `_query_db`, `_get_blocks`) — no parsing |
-| `parsers.py` | Converts raw Notion responses to clean dicts (goals, events, mirror notes, mirror notes nudge extraction) |
+| `__init__.py` | Blueprint routes + `init_app` that starts the poller |
+| `poller.py` | Wires `engine.NotionClient` + `engine.PollingCache` to mirror's 3 data sources |
+| `parsers.py` | Converts raw Notion pages/blocks → mirror dicts. Mirror-specific, stays in app. |
 
-**Data flow:** `poller.py` → calls `notion.py` → passes results to `parsers.py` → stores in `cache` → `__init__.py` serves `cache.get()` at `/mirror/api/data`.
-
-**Why split:** parsers and Notion API calls change for different reasons. Separating them keeps each file testable and readable independently.
+**Data flow:** `__init__.py` → `poller.start()` → `engine.PollingCache` calls `_fetch()` every 60s → `_fetch()` uses `engine.NotionClient` + `parsers` → result in `cache` → `/mirror/api/data` serves `cache.get()`.
 
 ## EIP App (`apps/eip/`)
 Wake-on-LAN + hub status. Simpler — single `__init__.py`, no background tasks.

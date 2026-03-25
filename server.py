@@ -45,12 +45,15 @@ def create_app():
     def server_error(e):
         return jsonify({"error": "internal server error"}), 500
 
-    app_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "apps")
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    app_dir  = os.path.join(root_dir, "apps")
+
+    # root on path → engine.* importable; apps/ on path → app modules importable
+    for p in (root_dir, app_dir):
+        if p not in sys.path:
+            sys.path.insert(0, p)
 
     if os.path.isdir(app_dir):
-        if app_dir not in sys.path:
-            sys.path.insert(0, app_dir)
-
         for name in sorted(os.listdir(app_dir)):
             init = os.path.join(app_dir, name, "__init__.py")
             if not os.path.isfile(init):

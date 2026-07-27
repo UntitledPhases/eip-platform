@@ -1,0 +1,34 @@
+{
+  "goals": [
+    {
+      "id": "goal-daily-walk",
+      "goal": "Take an evening walk",
+      "status": "Active",
+      "priority": "P2",
+      "horizon": "Daily",
+      "category": "Health",
+      "target": { "start": null, "end": null },
+      "notes": ""
+    }
+  ],
+  "calendar": [
+    {
+      "id": "event-focus-block",
+      "event": "Focus block",
+      "status": "Active",
+      "priority": "P1",
+      "type": "Work",
+      "when": { "start": "2026-07-16", "end": null },
+      "location": "",
+      "notes": "",
+      "days": [],
+      "start_time": "10:00",
+      "end_time": "12:00"
+    }
+  ],
+  "mirror_notes": [
+    "Use this file shape for the host's mirror-data/mirror.json."
+  ],
+  "last_updated": null,
+  "error": null
+}
